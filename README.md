@@ -1,8 +1,10 @@
 # DSH Session Search
 
-跨会话的消息级搜索插件，给 DSH 桌面端用。
+English | [简体中文](README_CN.md)
 
-> Full-text search across every past session in DSH. Chinese single characters and keywords both work; results are compact conversation-turn rows with jump-and-highlight. Everything stays local in a SQLite index — no network, no uploads.
+Message-level search across every session in the DSH desktop app.
+
+> Full-text search across all past sessions. Chinese single characters and keywords both work; results are compact conversation-turn rows with jump-and-highlight. Everything stays local in a SQLite index — no network, no uploads.
 
 ## Features
 
@@ -33,7 +35,7 @@ Download the `.tgz` from the repository release, then either:
 **CLI**
 
 ```sh
-dsh plugin --profile desktop add ./dsh-session-search-1.1.0.tgz
+dsh plugin --profile desktop add ./dsh-session-search-1.1.1.tgz
 ```
 
 After activation, open **Session search** from the sidebar. The first open builds the index in the background and shows progress; already-indexed content is searchable meanwhile.
