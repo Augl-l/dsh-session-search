@@ -1,0 +1,31 @@
+{
+  "name": "dsh-session-search",
+  "version": "1.1.0",
+  "private": true,
+  "description": "跨会话消息级搜索：本地 SQLite FTS5 索引 + 侧栏搜索面板，首次启用自动建库。",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

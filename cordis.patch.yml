@@ -1,0 +1,5 @@
+# Host row for the session-search plugin. The row id matches the package name;
+# the Client bundle registers under the same id.
+- insert:
+    - id: dsh-session-search
+      name: 'dsh-session-search'
