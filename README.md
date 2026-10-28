@@ -1,6 +1,6 @@
 # DSH Session Search
 
-跨会话的消息级搜索插件，给 [DSH 桌面端](https://github.com/deepseek-ai) 用。
+跨会话的消息级搜索插件，给 DSH 桌面端用。
 
 > Full-text search across every past session in DSH. Chinese single characters and keywords both work; results are compact conversation-turn rows with jump-and-highlight. Everything stays local in a SQLite index — no network, no uploads.
 
