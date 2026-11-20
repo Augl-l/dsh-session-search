@@ -20,6 +20,7 @@ window.__ModuleLoader__.load({
 
     const ROUTE = '/.dsh-session-search'
     const PANEL_ID = 'session-search'
+    const selectAll = (value) => value
 
     /**
      * The main panel unmounts when the reader jumps into a conversation, so the
@@ -581,19 +582,28 @@ window.__ModuleLoader__.load({
       }
     }
 
-    function workspaceSnapshot(clientCtx) {
+    /**
+     * Prefer the slot's standard `useWorkspaces`/`useSessions` snapshots. The
+     * direct service lookup stays as a fallback for older DSH clients that do
+     * not expose those props yet.
+     */
+    function workspaceSnapshot(clientCtx, views) {
       try {
         const service = clientCtx && typeof clientCtx.get === 'function' ? clientCtx.get('workspaces') : undefined
-        if (!service) return { service: null, snapshot: null }
-        const snapshot = service.list && typeof service.list.getSnapshot === 'function' ? service.list.getSnapshot() : null
-        return { service, snapshot }
+        const snapshot =
+          views && Object.prototype.hasOwnProperty.call(views, 'workspaces')
+            ? views.workspaces
+            : service && service.list && typeof service.list.getSnapshot === 'function'
+              ? service.list.getSnapshot()
+              : null
+        return { service: service || null, snapshot }
       } catch {
         return { service: null, snapshot: null }
       }
     }
 
-    function workspaceIdForSession(clientCtx, sessionId) {
-      const { snapshot } = workspaceSnapshot(clientCtx)
+    function workspaceIdForSession(clientCtx, views, sessionId) {
+      const { snapshot } = workspaceSnapshot(clientCtx, views)
       if (!snapshot || !Array.isArray(snapshot.items)) return ''
       for (const workspace of snapshot.items) {
         if (workspace && Array.isArray(workspace.sessionIds) && workspace.sessionIds.includes(sessionId)) {
@@ -603,10 +613,15 @@ window.__ModuleLoader__.load({
       return ''
     }
 
-    function currentSessionId(clientCtx) {
+    function currentSessionId(clientCtx, views) {
       try {
         const sessions = clientCtx && typeof clientCtx.get === 'function' ? clientCtx.get('sessions') : undefined
-        const snapshot = sessions && sessions.list && typeof sessions.list.getSnapshot === 'function' ? sessions.list.getSnapshot() : null
+        const snapshot =
+          views && Object.prototype.hasOwnProperty.call(views, 'sessions')
+            ? views.sessions
+            : sessions && sessions.list && typeof sessions.list.getSnapshot === 'function'
+              ? sessions.list.getSnapshot()
+              : null
         if (!snapshot || !snapshot.byId) return ''
         for (const row of Object.values(snapshot.byId)) {
           if (row && row.retainedBy && (row.retainedBy.mainView || 0) > 0) return row.sessionId || ''
@@ -617,8 +632,8 @@ window.__ModuleLoader__.load({
       return ''
     }
 
-    function archivedSessionIds(clientCtx) {
-      const { snapshot } = workspaceSnapshot(clientCtx)
+    function archivedSessionIds(clientCtx, views) {
+      const { snapshot } = workspaceSnapshot(clientCtx, views)
       return snapshot && Array.isArray(snapshot.archivedSessionIds) ? new Set(snapshot.archivedSessionIds) : null
     }
 
@@ -627,9 +642,9 @@ window.__ModuleLoader__.load({
      * would fall back to the workspace picker / a blank chat. Drop them from the
      * result list and keep the counters consistent with what is shown.
      */
-    function filterOpenableResults(clientCtx, body) {
+    function filterOpenableResults(clientCtx, views, body) {
       try {
-        const archived = archivedSessionIds(clientCtx)
+        const archived = archivedSessionIds(clientCtx, views)
         if (!archived || !body || !Array.isArray(body.items)) return body
         const kept = body.items.filter((item) => item && !archived.has(item.sessionId))
         if (kept.length === body.items.length) return body
@@ -951,7 +966,7 @@ window.__ModuleLoader__.load({
 .sex-lead { margin: 0; font-size: 12.5px; line-height: 1.62; color: var(--dsw-alias-label-secondary); }
 .sex-searchbar { display: flex; align-items: center; gap: 10px; }
 .sex-inputwrap { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
-.sex-input-icon { position: absolute; left: 13px; display: flex; color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary)); pointer-events: none; transition: color .16s ease; }
+.sex-input-icon { position: absolute; left: 13px; display: flex; color: var(--dsw-alias-label-secondary); pointer-events: none; transition: color .16s ease; }
 .sex-inputwrap:focus-within .sex-input-icon { color: var(--sex-accent); }
 .sex-input { box-sizing: border-box; width: 100%; height: 42px; padding: 0 38px 0 37px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: 12px; background: var(--sex-surface); font: inherit; font-size: 14px; line-height: 1.5; color: var(--dsw-alias-label-primary); transition: border-color .16s ease, box-shadow .16s ease, background .16s ease; }
 .sex-input::placeholder { color: var(--dsw-alias-label-secondary); opacity: .8; }
@@ -1173,8 +1188,28 @@ body[data-ds-dark-theme] ::highlight(dsh-session-search-hit) {
       return [status, error, load]
     }
 
+    /**
+     * Slot standard props expose `useWorkspaces`/`useSessions` as hooks. Hooks
+     * may only run unconditionally in a component, so choose the hook-backed or
+     * service-backed inner component once, based on what the slot supplies.
+     */
     function SearchPage(props) {
+      if (typeof props.useWorkspaces === 'function' && typeof props.useSessions === 'function') {
+        return h(SearchPageWithHooks, props)
+      }
+      return h(SearchPageInner, { ...props, views: null })
+    }
+
+    function SearchPageWithHooks(props) {
+      const workspaces = props.useWorkspaces(selectAll)
+      const sessions = props.useSessions(selectAll)
+      const views = useMemo(() => ({ workspaces, sessions }), [workspaces, sessions])
+      return h(SearchPageInner, { ...props, views })
+    }
+
+    function SearchPageInner(props) {
       const ctx = props && props.ctx
+      const views = (props && props.views) || null
       const t = copy()
       const [query, setQuery] = useState(PANEL_MEMORY.query)
       const [kinds, setKinds] = useState(() => [...PANEL_MEMORY.kinds])
@@ -1244,13 +1279,13 @@ body[data-ds-dark-theme] ::highlight(dsh-session-search-hit) {
             setJumpNote(copy().jumpTurnOnly)
             return
           }
-          const archived = archivedSessionIds(ctx)
+          const archived = archivedSessionIds(ctx, views)
           if (archived && archived.has(item.sessionId)) {
             notifyToast(copy().jumpArchived, 'warn')
             setJumpNote(copy().jumpArchived)
             return
           }
-          const workspaceId = workspaceIdForSession(ctx, item.sessionId)
+          const workspaceId = workspaceIdForSession(ctx, views, item.sessionId)
           if (!workspaceId) {
             notifyToast(copy().jumpNoWorkspace, 'warn')
             setJumpNote(copy().jumpNoWorkspace)
@@ -1258,8 +1293,8 @@ body[data-ds-dark-theme] ::highlight(dsh-session-search-hit) {
           }
           void (async () => {
             try {
-              const { service: workspaceService } = workspaceSnapshot(ctx)
-              const currentWorkspace = workspaceIdForSession(ctx, currentSessionId(ctx))
+              const { service: workspaceService } = workspaceSnapshot(ctx, views)
+              const currentWorkspace = workspaceIdForSession(ctx, views, currentSessionId(ctx, views))
               const sameWorkspace = Boolean(currentWorkspace) && currentWorkspace === workspaceId
               if (!sameWorkspace && workspaceService && typeof workspaceService.openWorkspace === 'function') {
                 // Cross-workspace hits need their workspace connected first;
@@ -1296,7 +1331,7 @@ body[data-ds-dark-theme] ::highlight(dsh-session-search-hit) {
             }
           })()
         },
-        [ctx, openSession, query, result],
+        [ctx, views, openSession, query, result],
       )
 
       const runSearch = useCallback(
@@ -1317,7 +1352,7 @@ body[data-ds-dark-theme] ::highlight(dsh-session-search-hit) {
                 `&limit=6&turns=${Number(size) || 5}&sort=${sort === 'time' ? 'time' : 'weight'}`,
             )
             if (ticket !== requestId.current) return
-            setResult(filterOpenableResults(ctx, body))
+            setResult(filterOpenableResults(ctx, views, body))
           } catch (cause) {
             if (ticket !== requestId.current) return
             setSearchError(cause.message || String(cause))
@@ -1326,7 +1361,7 @@ body[data-ds-dark-theme] ::highlight(dsh-session-search-hit) {
             if (ticket === requestId.current) setLoading(false)
           }
         },
-        [ctx],
+        [ctx, views],
       )
 
       useEffect(() => {
@@ -1866,7 +1901,7 @@ body[data-ds-dark-theme] ::highlight(dsh-session-search-hit) {
       ctx.effect(() => {
         const removeStyles = installStyles()
         const disposePanel = ctx.slots.inject('main', () =>
-          ctx.slots.register({ name: 'main', key: PANEL_ID }, () => h(SearchPage, { ctx })),
+          ctx.slots.register({ name: 'main', key: PANEL_ID }, (slotProps) => h(SearchPage, { ...slotProps, ctx })),
         )
         const disposeRail = ctx.slots.inject('sidebar.panellist', () =>
           ctx.slots.register(

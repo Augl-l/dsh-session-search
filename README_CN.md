@@ -18,7 +18,7 @@
 
 ## 环境要求
 
-- DSH 桌面端 **0.2.1-rc.3**（已测试）。
+- DSH 桌面端 **0.2.2-rc.5**（已测试；`engines.dsh` 声明 `>=0.2.2-rc.5 <0.3.0`）。
 - Host 服务 `webServer`、`sessionPersistence` / `sessionQuery`，以及 Node 的 `node:sqlite`。
   缺少其中任何一个时，插件仍会加载，面板会说明缺什么。
 
@@ -35,7 +35,7 @@
 **命令行**
 
 ```sh
-dsh plugin --profile desktop add ./dsh-session-search-1.1.1.tgz
+dsh plugin --profile desktop add ./dsh-session-search-1.2.0.tgz
 ```
 
 启用后，从左侧栏打开 **会话搜索**。第一次打开会在后台建库并显示进度；已经索引好的部分可以边建边搜。
@@ -76,7 +76,7 @@ dsh plugin --profile desktop add ./dsh-session-search-1.1.1.tgz
 - 搜索工具 / 思考 / 系统会慢一些（约 60–80 ms），因为走的是子串扫描而不是 trigram 索引。
 - 有些命中无法高亮，因为聊天界面不渲染它们：系统注入内容、只显示截断摘要的工具卡片，以及当前显示模式下被隐藏的思考。插件会定位到轮次并给出说明。
 - 在特别大的会话里跳到很久以前的轮次，可能需要几秒钟等聊天区加载历史。
-- 跳转/高亮依赖 DSH 聊天区的 DOM 契约；目前针对 0.2.1-rc.3 测试，其他版本可能需要适配。
+- 跳转/高亮依赖 DSH 聊天区的 DOM 契约；目前针对 0.2.2-rc.5 测试，其他版本可能需要适配。
 
 ## 开发
 

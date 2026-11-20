@@ -18,7 +18,7 @@ Message-level search across every session in the DSH desktop app.
 
 ## Requirements
 
-- DSH desktop **0.2.1-rc.3** (tested).
+- DSH desktop **0.2.2-rc.5** (tested; `>=0.2.2-rc.5 <0.3.0` declared in `engines.dsh`).
 - Host services `webServer`, `sessionPersistence` / `sessionQuery`, and Node's `node:sqlite`.
   If any of them is missing, the plugin still loads and the panel explains what is unavailable.
 
@@ -35,7 +35,7 @@ Download the `.tgz` from the repository release, then either:
 **CLI**
 
 ```sh
-dsh plugin --profile desktop add ./dsh-session-search-1.1.1.tgz
+dsh plugin --profile desktop add ./dsh-session-search-1.2.0.tgz
 ```
 
 After activation, open **Session search** from the sidebar. The first open builds the index in the background and shows progress; already-indexed content is searchable meanwhile.
@@ -76,7 +76,7 @@ session logs ──> Host indexer ──> SQLite (messages + FTS5 trigram)
 - Searching tools / reasoning / system is slower (roughly 60–80 ms) because it uses a substring scan instead of the trigram index.
 - Some hits cannot be highlighted because the chat surface does not render them: injected system context, tool cards that only show a truncated summary, and reasoning hidden by the current display mode. The plugin locates the turn and explains instead.
 - Jumping to an old turn in a very large session can take a few seconds while the chat loads history.
-- The jump/highlight integration relies on DSH chat DOM contracts; it is tested against 0.2.1-rc.3 and may need updates for other versions.
+- The jump/highlight integration relies on DSH chat DOM contracts; it is tested against 0.2.2-rc.5 and may need updates for other versions.
 
 ## Development
 
